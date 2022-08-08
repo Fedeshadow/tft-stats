@@ -1,0 +1,1 @@
+key = "your_lol_API_key_goes_here"
