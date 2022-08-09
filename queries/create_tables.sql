@@ -1,13 +1,14 @@
 CREATE TABLE player(
     server varchar(10),
-    playerId varchar(20),
-    puuid varchar(20),
-    PRIMARY KEY (server, playerId)
+    summonerId varchar(50),
+    accountId varchar(50),
+    puuid varchar(50),
+    PRIMARY KEY (server, summonerId)
 );
 
 CREATE TABLE matches(
-    server varchar(20),
-    id varchar(20),
+    server varchar(50),
+    id varchar(50),
     fetched boolean,
     notFetched boolean,
     discarded boolean,
@@ -15,7 +16,7 @@ CREATE TABLE matches(
 );
 
 CREATE TABLE comps(
-    id varchar(20),
+    id varchar(50),
     place int,
     trait1 varchar(10),
     trait2 varchar(10),
@@ -39,7 +40,7 @@ CREATE TABLE comps(
 );
 
 CREATE TABLE champs(
-    id varchar(20),
+    id varchar(50),
     place int,
     champID varchar(10),
     item1 varchar(10),

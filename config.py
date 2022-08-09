@@ -1,1 +1,2 @@
-key = "your_lol_API_key_goes_here"
+key = "your_lol_api_key_goes_here"
+db = 'database.db'
