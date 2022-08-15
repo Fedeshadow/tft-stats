@@ -115,7 +115,6 @@ class Player(Utils):
         #print(data)
         connection = sqlite3.connect(db,timeout=10,isolation_level=None)
         cursor = connection.cursor()
-        #cursor.executemany("INSERT INTO matches(server,id,fetched,notFetched,discarded) VALUES(?,?,?,?,?);",data)
-        #connection.commit()
-        cursor.commit()
+        cursor.executemany("INSERT INTO matches(server,id,fetched,notFetched,discarded) VALUES(?,?,?,?,?);",data)
+        connection.commit() #FIXME
         cursor.close()
