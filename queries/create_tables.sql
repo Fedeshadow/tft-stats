@@ -1,4 +1,4 @@
-CREATE TABLE player(
+CREATE TABLE players(
     server varchar(10),
     summonerId varchar(50),
     accountId varchar(50),

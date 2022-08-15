@@ -64,6 +64,22 @@ class Api(Utils):
                     # delete insert method and create a sql representation for the obj
                     # then data = list comprehension
                     return #FIXME
+    
+    def match_list(self,reg="euw1",*args,**kwargs):
+        """
+        populate db with matchIds
+        """
+        region = self.convert_region(reg)
+
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+
+        for p in cursor.execute('select * from players'):
+            player = Player(region=p[0],summoner_id=p[1],account_id=p[2],puuid=p[3])
+            player.insert_match_list()
+            
+            return #FIXME
+        cursor.close()
                     
 class Player(Utils):
     def __init__(self,summoner_id,region,account_id=None,puuid=None):
@@ -84,6 +100,22 @@ class Player(Utils):
         connection = sqlite3.connect(db)
         cursor = connection.cursor()
         # valuta se creare la query nel db
-        cursor.executescript(f"""INSERT INTO player(server,summonerId,accountId,puuid)
+        cursor.executescript(f"""INSERT INTO players(server,summonerId,accountId,puuid)
             VALUES ('{self.region}','{self.summoner_id}','{self.account_id}','{self.puuid}');""")
         connection.close()
+    
+    def insert_match_list(self):      # 10 games per player
+
+        region = self.convert_region(self.region)
+        url = f"https://{region}.api.riotgames.com/tft/match/v1/matches/by-puuid/{self.puuid}/ids?start=0&count=10&api_key={key}"
+        
+        match_ids = self.request(url, f"match list from player in region {region}")
+        
+        data = [(self.region, id, False, True, False) for id in match_ids]
+        #print(data)
+        connection = sqlite3.connect(db,timeout=10,isolation_level=None)
+        cursor = connection.cursor()
+        #cursor.executemany("INSERT INTO matches(server,id,fetched,notFetched,discarded) VALUES(?,?,?,?,?);",data)
+        #connection.commit()
+        cursor.commit()
+        cursor.close()

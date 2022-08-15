@@ -19,15 +19,17 @@ def db_creation():
     print('database setup done')
 
 
-db_creation()
+#db_creation()
 status = Api()
 
-status.player_list()
+# multithreading per region
+#status.threading_region(status.player_list, status.region, "player list")
 
+status.match_list()
 
 connection = sqlite3.connect(db)
 cursor = connection.cursor()
 
-for p in cursor.execute('select * from player'):
-    print(p)
+for m in cursor.execute('select * from matches'):
+    print(m)
 cursor.close()
