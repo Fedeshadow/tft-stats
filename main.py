@@ -18,18 +18,13 @@ def db_creation():
     connection.close()
     print('database setup done')
 
+# if __name__ == 'main':
 
 #db_creation()
 status = Api()
 
 # multithreading per region
 #status.threading_region(status.player_list, status.region, "player list")
+status.threading_region(status.match_list, status.region, "match id list")
 
-status.match_list()
-
-connection = sqlite3.connect(db)
-cursor = connection.cursor()
-
-for m in cursor.execute('select * from matches'):
-    print(m)
-cursor.close()
+print('done')

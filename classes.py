@@ -69,17 +69,21 @@ class Api(Utils):
         """
         populate db with matchIds
         """
-        region = self.convert_region(reg)
-
         connection = sqlite3.connect(db)
         cursor = connection.cursor()
-
-        for p in cursor.execute('select * from players'):
-            player = Player(region=p[0],summoner_id=p[1],account_id=p[2],puuid=p[3])
-            player.insert_match_list()
-            
-            return #FIXME
+        cursor.execute(f"SELECT * FROM players WHERE server='{reg}'")
+        players = cursor.fetchall()
         cursor.close()
+        
+        try:
+            for p in players:
+                player = Player(region=p[0],summoner_id=p[1],account_id=p[2],puuid=p[3])
+                player.insert_match_list()
+                
+                return #FIXME
+        except Exception as e:
+            print(e)
+        
                     
 class Player(Utils):
     def __init__(self,summoner_id,region,account_id=None,puuid=None):
@@ -99,7 +103,7 @@ class Player(Utils):
         
         connection = sqlite3.connect(db)
         cursor = connection.cursor()
-        # valuta se creare la query nel db
+        #TODO valuta se creare la query nel file sql
         cursor.executescript(f"""INSERT INTO players(server,summonerId,accountId,puuid)
             VALUES ('{self.region}','{self.summoner_id}','{self.account_id}','{self.puuid}');""")
         connection.close()
@@ -112,9 +116,11 @@ class Player(Utils):
         match_ids = self.request(url, f"match list from player in region {region}")
         
         data = [(self.region, id, False, True, False) for id in match_ids]
-        #print(data)
-        connection = sqlite3.connect(db,timeout=10,isolation_level=None)
+        
+        connection = sqlite3.connect(db,timeout=60,isolation_level=None)
         cursor = connection.cursor()
-        cursor.executemany("INSERT INTO matches(server,id,fetched,notFetched,discarded) VALUES(?,?,?,?,?);",data)
-        connection.commit() #FIXME
+        with open('queries/insert_match_id.sql') as f:
+            query = f.read()
+        cursor.executemany(query,data)
+        connection.commit()
         cursor.close()
