@@ -36,15 +36,15 @@ class Utils:
         
 class Api(Utils):
     def __init__(self):
-        #self.lol_version = self.get_lol_version()
+        self.lol_version = self.get_lol_version()
         self.key = key
         self.tier = ["PLATINUM","DIAMOND"]
         self.div = ["I","II","III","IV"]
         self.region = ["euw1","kr","na1"]
         self.languages = ["it_IT","en_US"]
     
-    #def get_lol_version(self):
-    #    return rq.get("https://ddragon.leagueoflegends.com/api/versions.json").json()[0]
+    def get_lol_version(self):
+        return rq.get("https://ddragon.leagueoflegends.com/api/versions.json").json()[0]
 
     def player_url(self, region, tier, div, page):
         return f"https://{region}.api.riotgames.com/tft/league/v1/entries/{tier}/{div}?page={page}&api_key={key}"
@@ -83,6 +83,31 @@ class Api(Utils):
                 return #FIXME
         except Exception as e:
             print(e)
+    
+    def matches_fetch(self,reg="euw1",*args,**kwargs):
+        region = self.convert_region(reg)
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+        cursor.execute(f"""SELECT * FROM matches 
+                            WHERE server='{reg}' AND notFetched=true""")            
+
+        matches = [m[1] for m in cursor.fetchall()]
+        cursor.close()
+        for m in matches:
+            try:
+                match = Match(m,region)
+                if not match.check_version(self.lol_version):
+                    connection = sqlite3.connect(db)
+                    cursor = connection.cursor()
+                    cursor.execute(f"""UPDATE matches
+                                       SET notFetched = false, discarded=true
+                                       WHERE id='{m}'""")
+                    connection.commit()
+                    connection.close()
+                    continue
+                match.match_analysis()
+            except Exception as e:
+                print(e)
         
                     
 class Player(Utils):
@@ -109,18 +134,83 @@ class Player(Utils):
         connection.close()
     
     def insert_match_list(self):      # 10 games per player
-
         region = self.convert_region(self.region)
         url = f"https://{region}.api.riotgames.com/tft/match/v1/matches/by-puuid/{self.puuid}/ids?start=0&count=10&api_key={key}"
-        
-        match_ids = self.request(url, f"match list from player in region {region}")
+        match_ids = self.request(url, f"match list from player in region {region}")  
         
         data = [(self.region, id, False, True, False) for id in match_ids]
         
-        connection = sqlite3.connect(db,timeout=60,isolation_level=None)
+        connection = sqlite3.connect(db)
         cursor = connection.cursor()
         with open('queries/insert_match_id.sql') as f:
             query = f.read()
         cursor.executemany(query,data)
         connection.commit()
         cursor.close()
+
+class Match(Utils):
+    def __init__(self,match_id,server="europe"):
+        self.id = match_id
+        self.url = f"https://{server}.api.riotgames.com/tft/match/v1/matches/{match_id}?api_key={key}"
+        self.data = self.request(self.url, "match data")
+        self.region = server
+    
+    def check_version(self,version):
+        v = "".join([i for i in version.split(".")[:2]])   # exctract current patch
+        m_v = "".join([i for i in self.data['info']['game_version'].lstrip('Version ').split(".")[:2]])
+        if v != m_v:
+            return False
+        return True
+
+    def list_complete(self, l:list, lenght:int):
+        """Sort the list and add zeros to reach the max lenght"""
+        l.sort()
+        while len(l)<lenght:
+            l.append(0)
+        return l[:lenght]
+
+    def match_analysis(self):
+        comp_params, champ_params = [],[]
+        for comp in self.data['info']['participants']:
+            augments = comp['augments']
+            traits = [c['name'] for c in comp['traits'] if c['tier_current'] > 0 ]
+            place = comp['placement']
+            champions = []
+            for champ in comp['units']:
+                name = champ['character_id']
+                items = champ['itemNames']
+                champions.append(name)
+
+                sql_row = tuple([self.id,place,name] + self.list_complete(items,3))
+                champ_params.append(sql_row)
+            
+            sql_row = tuple([self.id,place] + self.list_complete(traits, 8) + self.list_complete(champions, 10) + self.list_complete(augments, 3))
+            comp_params.append(sql_row)
+        
+        with open('queries/comp_insert.sql') as f:
+            query1 = f.read()
+        with open('queries/champ_insert.sql') as f:
+            query2 = f.read()
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+        cursor.executemany(query1, comp_params)
+        connection.commit()
+        cursor.close()
+        
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+        cursor.executemany(query2, champ_params)
+        connection.commit()
+        cursor.close()
+
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+        cursor.execute(f"""UPDATE matches
+                            SET notFetched= false, fetched=true
+                            WHERE id='{self.id}'""")
+        connection.commit()
+        connection.close()
+
+
+        
+        
