@@ -4,6 +4,8 @@ from config import *
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 import pandas as pd
+import json
+import os
 
 class Utils:
     
@@ -122,12 +124,26 @@ class Api(Utils):
         return pd.DataFrame(names,columns =['names'])
 
     def items_name_converter(self, items:dict, lang):
-        if lang == "it":
+        if lang == "it_IT":
             url = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/it_it/v1/tftitems.json"
         else:
             url = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/tftitems.json"
-        
-        #TODO: complete language support
+        data = self.request(url, "item conversion")
+        final_dict = {}
+        for champ in items.keys():
+            new_items = []
+            for item in items[champ]:
+                for i in data:
+                    if i["nameId"] == item:
+                        new_items.append(i["name"])
+                        break
+            final_dict[champ] = new_items
+        if not os.path.isdir("./results/"):
+            os.makedirs("./results/")
+        with open(f"results/item_dict_{lang}.json","w") as f:
+            json.dump(final_dict, f, indent=2)
+                
+
 
     def champion_items_maker(self):
         connection = sqlite3.connect(db)
@@ -148,7 +164,10 @@ class Api(Utils):
         for champ in final["names"]:
             row = final[final["names"]==champ]
             build[champ] = [row.iat[0,2],row.iat[0,3],row.iat[0,4]]
-        print(build)
+        
+        for lang in self.languages:
+            self.items_name_converter(build, lang)
+
         
                     
 class Player(Utils):
@@ -169,7 +188,6 @@ class Player(Utils):
         
         connection = sqlite3.connect(db)
         cursor = connection.cursor()
-        #TODO valuta se creare la query nel file sql
         cursor.executescript(f"""INSERT INTO players(server,summonerId,accountId,puuid)
             VALUES ('{self.region}','{self.summoner_id}','{self.account_id}','{self.puuid}');""")
         connection.close()
