@@ -3,6 +3,7 @@ import sqlite3
 from config import *
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
+import pandas as pd
 
 class Utils:
     
@@ -108,6 +109,46 @@ class Api(Utils):
                 match.match_analysis()
             except Exception as e:
                 print(e)
+    
+    def champ_name_converter(self, items):
+        url = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/tftchampions.json"
+        data = self.request(url, "champ names")
+        names = []
+        for _id in items["champID"]:
+            for c in data:
+                if _id == c["character_id"]:
+                    names.append(c["display_name"])
+                    break
+        return pd.DataFrame(names,columns =['names'])
+
+    def items_name_converter(self, items:dict, lang):
+        if lang == "it":
+            url = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/it_it/v1/tftitems.json"
+        else:
+            url = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/tftitems.json"
+        
+        #TODO: complete language support
+
+    def champion_items_maker(self):
+        connection = sqlite3.connect(db)
+        cursor = connection.cursor()
+        with open('queries/champ_items_view.sql') as f:
+            query = f.read()
+        cursor.execute(query)
+        cursor.close()
+
+        with open('queries/champ_items_select.sql') as f:
+            query1 = f.read()
+        connection = sqlite3.connect(db)
+        items = pd.read_sql_query(query1, connection)
+        names = self.champ_name_converter(items)
+        final = pd.concat([names,items], axis=1)
+
+        build={}
+        for champ in final["names"]:
+            row = final[final["names"]==champ]
+            build[champ] = [row.iat[0,2],row.iat[0,3],row.iat[0,4]]
+        print(build)
         
                     
 class Player(Utils):
