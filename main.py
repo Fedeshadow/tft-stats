@@ -18,13 +18,15 @@ def db_creation():
     connection.close()
     print('database setup done')
 
-# if __name__ == 'main':
+if __name__ == '__main__':
+    db_creation() #TODO implement argument parsing to run only when needed
+    status = Api()
+    status.champion_items_maker()
 
-#db_creation() #TODO implement argument parsing to run only when needed
-status = Api()
-status.champion_items_maker()
+    # multithreading per region
+    status.threading_region(status.player_list, status.region, "player list")
+    status.threading_region(status.match_list, status.region, "match id list")
+    status.threading_region(status.matches_fetch, status.region, "match analysis")
 
-# multithreading per region
-#status.threading_region(status.player_list, status.region, "player list")
-#status.threading_region(status.match_list, status.region, "match id list")
-#status.threading_region(status.matches_fetch, status.region, "match analysis")
+    for lang in status.languages:
+        status.champion_items_maker(lang)

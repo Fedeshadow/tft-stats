@@ -145,7 +145,7 @@ class Api(Utils):
                 
 
 
-    def champion_items_maker(self):
+    def champion_items_maker(self, lang="en_US"):
         connection = sqlite3.connect(db)
         cursor = connection.cursor()
         with open('queries/champ_items_view.sql') as f:
@@ -159,14 +159,12 @@ class Api(Utils):
         items = pd.read_sql_query(query1, connection)
         names = self.champ_name_converter(items)
         final = pd.concat([names,items], axis=1)
-
         build={}
         for champ in final["names"]:
             row = final[final["names"]==champ]
             build[champ] = [row.iat[0,2],row.iat[0,3],row.iat[0,4]]
         
-        for lang in self.languages:
-            self.items_name_converter(build, lang)
+        self.items_name_converter(build, lang)
 
         
                     
