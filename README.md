@@ -11,7 +11,8 @@ More functions, such as best augments for each comps and winrate, can be easily 
 Please note that you will need a Riot API development key in order to access the Riot Api, in order to collect players' and matches' id.
 
 
-[Altra immagine]
+![Example](images/diagram.png)
+
 ###  Installation
 1. Get a riot development API Key at [Riot development portal](https://developer.riotgames.com)
 2. Clone the repo
