@@ -2,7 +2,7 @@
 ## About the project
  ![Logo](images/logo.png)
 
-This project handles the data analysis side of the Alexa Skill [Team Fight Tactics Comps ](https://it.wikipedia.org/wiki/Lingua_italiana "Lingua italiana").\
+This project handles the data analysis side of the Alexa Skill Team Fight Tactics Comps (submitted for verification on the Alexa Skill store).\
 It makes use of the Riot Api and sqlite as a local database.
 
 Altough it is already designed to collect sufficient data to make aviable more complex analysis, at the moment it only recomends best items for each champion.\
